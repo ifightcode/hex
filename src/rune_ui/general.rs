@@ -18,7 +18,7 @@ use super::controls::{
     quiet_button, row_switch, value_button, value_font,
 };
 use super::icons::*;
-use super::lists::{PermissionControl, inline_slider, permission_control, slider};
+use super::lists::{PermissionControl, inline_slider, permission_control};
 use super::platform::PlatformRequest;
 use super::settings::{self as s, Capture, Face};
 use super::{Menu, Pane, Request, ShortcutTarget, Ui};
@@ -315,6 +315,7 @@ fn microphone_release_row(ui: &Ui, p: Paint) -> (&'static str, CardRow) {
 /// Labs › Also pause the browser's permission, under Pause media on macOS:
 /// Hex hears the browser through System Audio Recording, asked for here,
 /// never while you dictate.
+#[allow(dead_code)]
 fn pause_browser_rows(ui: &Ui, p: Paint) -> Vec<El> {
     let on = ui.settings.pause_browser_media;
     let mut rows = Vec::new();
@@ -844,72 +845,29 @@ pub(super) fn output(ui: &Ui, p: Paint, layer: &mut Vec<El>, query: &str) -> Vec
             ),
         );
     }
-    let behaviors = RecordingAudioBehavior::ALL;
-    rows.push(
-        tr("While dictating"),
-        pick_row(
-            ui,
+    let is_muted = settings.recording_audio_behavior == RecordingAudioBehavior::Mute;
+    rows.push_described(
+        tr("Mute while dictating"),
+        Some(tr("Silences other audio while you dictate")),
+        icon_toggle_row(
             p,
             "while-dictating",
             &MUTE,
-            tr("While dictating"),
-            behaviors
-                .iter()
-                .map(|behavior| tr(behavior.label()))
-                .collect(),
-            behaviors
-                .iter()
-                .position(|behavior| *behavior == settings.recording_audio_behavior)
-                .unwrap_or(0),
-            |ui, index| {
-                let behavior = RecordingAudioBehavior::ALL[index];
-                if ui.settings.recording_audio_behavior != behavior {
-                    ui.update(|settings| settings.recording_audio_behavior = behavior);
-                }
+            tr("Mute while dictating"),
+            tr("Silences other audio while you dictate"),
+            is_muted,
+            |ui: &mut Ui| {
+                let enabled = ui.settings.recording_audio_behavior != RecordingAudioBehavior::Mute;
+                ui.update(|settings| {
+                    settings.recording_audio_behavior = if enabled {
+                        RecordingAudioBehavior::Mute
+                    } else {
+                        RecordingAudioBehavior::DoNothing
+                    };
+                });
             },
-            layer,
         ),
     );
-    if settings.recording_audio_behavior == RecordingAudioBehavior::Duck {
-        let volume = ui
-            .duck_volume_drag
-            .unwrap_or(settings.recording_duck_volume);
-        rows.push_described(
-            tr("Lower to"),
-            Some(tr("Percent of the current output volume")),
-            icon_row(
-                p,
-                "recording-duck-volume",
-                &SPEAKER,
-                tr("Lower to"),
-                Some(tr("Percent of the current output volume")),
-                slider(
-                    p,
-                    "recording-duck-slider",
-                    tr("Volume while recording"),
-                    volume,
-                    format!("{:.0}%", volume * 100.0),
-                    200.0,
-                    |ui, value, done| {
-                        let value = (value * 100.0).round() / 100.0;
-                        ui.duck_volume_drag = if done { None } else { Some(value) };
-                        if done {
-                            ui.update(|settings| settings.recording_duck_volume = value);
-                        }
-                    },
-                ),
-            ),
-        );
-    }
-    if ui.platform.caps.os == super::platform::Os::Macos
-        && settings.recording_audio_behavior == RecordingAudioBehavior::PauseMedia
-    {
-        rows.extend_described(
-            tr("Screen & System Audio Recording"),
-            Some(tr("Lets Hex hear whether a tab is playing")),
-            pause_browser_rows(ui, p).into_iter().map(CardRow::from),
-        );
-    }
     rows.push(
         tr("Dictation HUD"),
         pick_row(

@@ -681,6 +681,7 @@ pub(crate) struct Ui {
     preparing: Option<(TranscriptionModelId, Instant)>,
     /// When a text field last changed without being saved.
     draft_since: Option<Instant>,
+    #[allow(dead_code)]
     duck_volume_drag: Option<f32>,
     sound_volume_drag: Option<f32>,
     models: models::Models,

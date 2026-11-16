@@ -216,6 +216,7 @@ pub enum RecordingAudioBehavior {
 
 pub use crate::dictation::text_replacements::TextReplacement;
 
+#[allow(dead_code)]
 impl RecordingAudioBehavior {
     pub const ALL: [Self; 4] = [Self::Mute, Self::PauseMedia, Self::Duck, Self::DoNothing];
 

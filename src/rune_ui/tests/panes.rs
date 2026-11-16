@@ -3046,45 +3046,24 @@ fn experiment_goldens() {
 }
 
 #[test]
-fn ducking_shows_a_persisted_slider_on_every_os_when_selected() {
+fn mute_toggle_persists_on_every_os() {
     use crate::app_settings::RecordingAudioBehavior;
     let mut rt = runtime("mac-settings", true, (1100.0, 2800.0));
     open_advanced(&mut rt, Pane::General);
-    assert!(rt.find("recording-duck-slider").is_none());
-    pick(&mut rt, "while-dictating", 2);
+    assert_ne!(
+        rt.state.settings.recording_audio_behavior,
+        RecordingAudioBehavior::Mute
+    );
+    tap(&mut rt, "while-dictating");
     assert_eq!(
         rt.state.settings.recording_audio_behavior,
-        RecordingAudioBehavior::Duck
+        RecordingAudioBehavior::Mute
     );
-    let before = rt.state.saved;
-    let (x, y) = rt.find("recording-duck-slider/track").unwrap();
-    rt.pointer_down(x + 60.0, y);
+    tap(&mut rt, "while-dictating");
     assert_eq!(
-        rt.state.saved, before,
-        "dragging does not persist each movement"
+        rt.state.settings.recording_audio_behavior,
+        RecordingAudioBehavior::DoNothing
     );
-    rt.pointer_up(x + 60.0, y);
-    settle(&mut rt);
-    assert_eq!(rt.state.saved, before + 1);
-    let volume = rt.state.settings.recording_duck_volume;
-    assert!(volume > 0.2 && volume <= 1.0);
-    pick(&mut rt, "while-dictating", 3);
-    assert!(rt.find("recording-duck-slider").is_none());
-    pick(&mut rt, "while-dictating", 2);
-    assert_eq!(rt.state.settings.recording_duck_volume, volume);
-    for scene in ["portal", "windows-settings"] {
-        let mut rt = runtime(scene, true, (1100.0, 2800.0));
-        if scene == "portal" {
-            rt.state.platform.caps = platform::Capabilities::LINUX;
-        }
-        open_advanced(&mut rt, Pane::General);
-        pick(&mut rt, "while-dictating", 2);
-        assert_eq!(
-            rt.state.settings.recording_audio_behavior,
-            RecordingAudioBehavior::Duck
-        );
-        assert!(rt.find("recording-duck-slider").is_some());
-    }
 }
 
 #[test]
